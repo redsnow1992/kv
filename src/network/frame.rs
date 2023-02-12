@@ -99,25 +99,8 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Value;
+    use crate::{Value, utils::DummyStream};
     use bytes::Bytes;
-
-    struct DummyStream {
-        buf: BytesMut,
-    }
-
-    impl AsyncRead for DummyStream {
-        fn poll_read(
-            self: std::pin::Pin<&mut Self>,
-            _cx: &mut std::task::Context<'_>,
-            buf: &mut tokio::io::ReadBuf<'_>,
-        ) -> std::task::Poll<std::io::Result<()>> {
-            let len = buf.capacity();
-            let data = self.get_mut().buf.split_to(len);
-            buf.put_slice(&data);
-            std::task::Poll::Ready(Ok(()))
-        }
-    }
 
     #[test]
     fn command_request_encoder_decoder_should_work() {
