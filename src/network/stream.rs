@@ -1,3 +1,4 @@
+use anyhow::Result;
 use std::{
     marker::PhantomData,
     pin::Pin,
@@ -5,13 +6,12 @@ use std::{
 };
 
 use bytes::BytesMut;
-use futures::{Stream, Sink, ready, FutureExt};
+use futures::{ready, FutureExt, Sink, Stream};
 use tokio::io::{AsyncRead, AsyncWrite};
-use anyhow::Result;
 
-use crate::{FrameCoder, KvError, read_frame};
+use crate::{read_frame, FrameCoder, KvError};
 
-pub struct ProstStream<S, In, Out> where {
+pub struct ProstStream<S, In, Out> {
     stream: S,
     wbuf: BytesMut,
     written: usize,
@@ -20,9 +20,9 @@ pub struct ProstStream<S, In, Out> where {
     _out: PhantomData<Out>,
 }
 
-impl<S, In, Out> ProstStream<S, In, Out> 
+impl<S, In, Out> ProstStream<S, In, Out>
 where
-    S: AsyncRead + AsyncWrite + Send + Unpin
+    S: AsyncRead + AsyncWrite + Send + Unpin,
 {
     pub fn new(stream: S) -> Self {
         Self {
@@ -55,10 +55,10 @@ where
 
         self.rbuf.unsplit(rest);
         Poll::Ready(Some(In::decode_frame(&mut self.rbuf)))
-    }    
+    }
 }
 
-impl<S, In, Out> Sink<Out> for ProstStream<S, In, Out> 
+impl<S, In, Out> Sink<Out> for ProstStream<S, In, Out>
 where
     S: AsyncRead + AsyncWrite + Unpin + Send,
     In: Unpin + Send,
@@ -81,14 +81,12 @@ where
         let this = self.get_mut();
 
         while this.written != this.wbuf.len() {
-            let n = ready!(Pin::new(&mut this.stream)
-                .poll_write(cx, &this.wbuf[this.written..]))?;
+            let n = ready!(Pin::new(&mut this.stream).poll_write(cx, &this.wbuf[this.written..]))?;
             this.written += n;
         }
 
         this.wbuf.clear();
         this.written = 0;
-
 
         Poll::Ready(Ok(()))
     }
@@ -97,7 +95,6 @@ where
         ready!(self.as_mut().poll_flush(cx))?;
 
         ready!(Pin::new(&mut self.stream).poll_shutdown(cx))?;
-        
         Poll::Ready(Ok(()))
     }
 }

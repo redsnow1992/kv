@@ -99,7 +99,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Value, utils::DummyStream};
+    use crate::{utils::DummyStream, Value};
     use bytes::Bytes;
 
     #[test]

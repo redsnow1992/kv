@@ -1,6 +1,6 @@
+use futures::{SinkExt, StreamExt};
 use tokio::io::{AsyncRead, AsyncWrite};
 use tracing::info;
-use futures::{SinkExt, StreamExt};
 
 use crate::{CommandRequest, CommandResponse, KvError, Service, Storage};
 
@@ -76,7 +76,9 @@ where
     S: AsyncRead + AsyncWrite + Unpin + Send,
 {
     pub fn new(stream: S) -> Self {
-        Self { inner: ProstStream::new(stream) }
+        Self {
+            inner: ProstStream::new(stream),
+        }
     }
 
     pub async fn execute(&mut self, cmd: CommandRequest) -> Result<CommandResponse, KvError> {
@@ -107,9 +109,12 @@ where
 
 #[cfg(test)]
 pub mod utils {
-    use std::{task::{Context, Poll}, pin::Pin};
+    use std::{
+        pin::Pin,
+        task::{Context, Poll},
+    };
 
-    use bytes::{BytesMut, BufMut};
+    use bytes::{BufMut, BytesMut};
     use tokio::io::{AsyncRead, AsyncWrite};
 
     pub struct DummyStream {
@@ -131,19 +136,25 @@ pub mod utils {
 
     impl AsyncWrite for DummyStream {
         fn poll_write(
-                self: Pin<&mut Self>,
-                _cx: &mut std::task::Context<'_>,
-                buf: &[u8],
-            ) -> Poll<Result<usize, std::io::Error>> {
+            self: Pin<&mut Self>,
+            _cx: &mut std::task::Context<'_>,
+            buf: &[u8],
+        ) -> Poll<Result<usize, std::io::Error>> {
             self.get_mut().buf.put_slice(buf);
             Poll::Ready(Ok(buf.len()))
         }
 
-        fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Result<(), std::io::Error>> {
+        fn poll_flush(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+        ) -> Poll<Result<(), std::io::Error>> {
             Poll::Ready(Ok(()))
         }
 
-        fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Result<(), std::io::Error>> {
+        fn poll_shutdown(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+        ) -> Poll<Result<(), std::io::Error>> {
             Poll::Ready(Ok(()))
         }
     }
